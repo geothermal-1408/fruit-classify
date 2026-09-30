@@ -28,22 +28,19 @@ import zipfile
 
 CLASSES = ["apple", "banana", "orange", "mango", "grape"]
 
-# Kaggle "Fruits-262" subset – a small public ZIP hosted on GitHub / GDrive
-# For reproducibility we host a trimmed copy; if unavailable we synthesise.
-DATASET_URL = (
-    "https://github.com/Horea94/Fruit-Images-Dataset/archive/refs/heads/master.zip"
-)
+# FIDS30 is a real-world fruit dataset with complex backgrounds and lighting.
+DATASET_URL = "https://www.vicos.si/Downloads/FIDS30"
 
-# Mapping from the Kaggle dataset folder names to our target classes
-KAGGLE_FOLDER_MAP = {
-    "apple": ["Apple Braeburn", "Apple Golden 1", "Apple Red 1"],
-    "banana": ["Banana"],
-    "orange": ["Orange"],
-    "mango": ["Mango"],
-    "grape": ["Grape Blue", "Grape White"],
+# Mapping from FIDS30 dataset folder names to our target classes
+FOLDER_MAP = {
+    "apple": ["apples"],
+    "banana": ["bananas"],
+    "orange": ["oranges"],
+    "mango": ["mangoes"],
+    "grape": ["grapes"],
 }
 
-IMAGES_PER_CLASS = 200  # cap per split source
+IMAGES_PER_CLASS = 600  # cap per split source
 TRAIN_RATIO = 0.70
 VAL_RATIO = 0.15
 TEST_RATIO = 0.15
@@ -117,40 +114,34 @@ def _download_and_extract(dest: str) -> str | None:
     os.remove(zip_path)
     print("  Extraction complete, ZIP deleted.")
 
-    # Find the extracted root (usually Fruit-Images-Dataset-master/)
-    # Must contain Training/ or Test/ subdirs – skip our own train/validation/test dirs
+    # Find the extracted root (the FIDS30 folder)
+    # Skip our own train/validation/test dirs
     for entry in sorted(os.listdir(dest)):
         candidate = os.path.join(dest, entry)
         if not os.path.isdir(candidate):
             continue
-        # Skip directories we created ourselves
         if entry in ("train", "validation", "test"):
             continue
-        # Check if this looks like the Kaggle dataset
-        has_training = os.path.isdir(os.path.join(candidate, "Training"))
-        has_test = os.path.isdir(os.path.join(candidate, "Test"))
-        if has_training or has_test:
+        # Check if this looks like the FIDS30 dataset (has fruit subfolders)
+        has_apples = os.path.isdir(os.path.join(candidate, "apples"))
+        has_bananas = os.path.isdir(os.path.join(candidate, "bananas"))
+        if has_apples or has_bananas:
             print(f"  Found dataset root: {candidate}")
             return candidate
     return None
 
-
-def _collect_images_from_kaggle(extracted_root: str) -> dict[str, list[str]]:
-    """Walk the Kaggle dataset and collect image paths per target class."""
+def _collect_images(extracted_root: str) -> dict[str, list[str]]:
+    """Walk the dataset and collect image paths per target class."""
     collected: dict[str, list[str]] = {cls: [] for cls in CLASSES}
 
-    for split_name in ("Training", "Test"):
-        split_dir = os.path.join(extracted_root, split_name)
-        if not os.path.isdir(split_dir):
-            continue
-        for cls, folder_names in KAGGLE_FOLDER_MAP.items():
-            for folder_name in folder_names:
-                folder_path = os.path.join(split_dir, folder_name)
-                if not os.path.isdir(folder_path):
-                    continue
-                for fname in sorted(os.listdir(folder_path)):
-                    if fname.lower().endswith((".jpg", ".jpeg", ".png")):
-                        collected[cls].append(os.path.join(folder_path, fname))
+    for cls, folder_names in FOLDER_MAP.items():
+        for folder_name in folder_names:
+            folder_path = os.path.join(extracted_root, folder_name)
+            if not os.path.isdir(folder_path):
+                continue
+            for fname in sorted(os.listdir(folder_path)):
+                if fname.lower().endswith((".jpg", ".jpeg", ".png")):
+                    collected[cls].append(os.path.join(folder_path, fname))
     return collected
 
 
@@ -269,8 +260,8 @@ def prepare(data_dir: str = "data", seed: int = SEED) -> None:
         candidate = os.path.join(data_dir, entry)
         if not os.path.isdir(candidate) or entry in ("train", "validation", "test"):
             continue
-        if os.path.isdir(os.path.join(candidate, "Training")) or \
-           os.path.isdir(os.path.join(candidate, "Test")):
+        if os.path.isdir(os.path.join(candidate, "apples")) or \
+           os.path.isdir(os.path.join(candidate, "bananas")):
             print(f"Found already-extracted dataset: {candidate}")
             extracted = candidate
             break
@@ -279,7 +270,7 @@ def prepare(data_dir: str = "data", seed: int = SEED) -> None:
     if extracted is None:
         extracted = _download_and_extract(download_dir)
     if extracted:
-        images = _collect_images_from_kaggle(extracted)
+        images = _collect_images(extracted)
         total = sum(len(v) for v in images.values())
         if total > 0:
             print(f"Collected {total} images from dataset. Splitting …")

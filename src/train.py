@@ -25,7 +25,7 @@ BATCH_SIZE = 32
 EPOCHS = 10
 LR = 1e-3
 SEED = 42
-FINE_TUNE_LAYERS = 20  # number of layers to unfreeze during fine-tuning (0 = skip)
+FINE_TUNE_LAYERS = 40  # number of layers to unfreeze during fine-tuning (0 = skip)
 
 CLASSES = ["apple", "banana", "grape", "mango", "orange"]
 
@@ -68,8 +68,12 @@ def load_datasets(
     return train_ds, val_ds, test_ds, class_names
 
 
-def build_model(num_classes: int, lr: float) -> keras.Model:
-    """Build a MobileNetV2 transfer-learning model."""
+def build_model(num_classes: int, lr: float) -> tuple:
+    """Build a MobileNetV2 transfer-learning model.
+
+    Returns:
+        (model, base_model) – the full model and the MobileNetV2 base.
+    """
     base_model = keras.applications.MobileNetV2(
         input_shape=(*IMG_SIZE, 3),
         include_top=False,
@@ -91,7 +95,7 @@ def build_model(num_classes: int, lr: float) -> keras.Model:
         loss="categorical_crossentropy",
         metrics=["accuracy"],
     )
-    return model
+    return model, base_model
 
 
 def get_augmentation_layer() -> keras.Sequential:
@@ -102,6 +106,8 @@ def get_augmentation_layer() -> keras.Sequential:
             layers.RandomRotation(0.05),
             layers.RandomZoom(0.1),
             layers.RandomTranslation(0.05, 0.05),
+            layers.RandomContrast(0.1),
+            layers.RandomBrightness(0.1),
         ],
         name="augmentation",
     )
@@ -142,7 +148,7 @@ def train(
 
     # 3. Build model
     print("Building model …")
-    model = build_model(num_classes=len(class_names), lr=lr)
+    model, base_model = build_model(num_classes=len(class_names), lr=lr)
     model.summary()
 
     # 4. Callbacks
@@ -168,10 +174,9 @@ def train(
     # 6. Optional fine-tuning
     if fine_tune_layers > 0:
         print(f"\n── Phase 2: Fine-tuning last {fine_tune_layers} base layers ──")
-        base = model.layers[2]  # the MobileNetV2 functional model
-        base.trainable = True
+        base_model.trainable = True
         # Freeze all but the last `fine_tune_layers` layers
-        for layer in base.layers[:-fine_tune_layers]:
+        for layer in base_model.layers[:-fine_tune_layers]:
             layer.trainable = False
 
         model.compile(
