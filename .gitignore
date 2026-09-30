@@ -11,8 +11,10 @@ env/
 # Dataset (too large for Git)
 data/
 
-# Model checkpoints
-models/
+# Model checkpoints (uncomment models/ if model files are hosted elsewhere)
+# models/
+!models/*.keras
+!models/*.json
 
 # Generated outputs
 outputs/

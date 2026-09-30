@@ -29,14 +29,14 @@ import zipfile
 CLASSES = ["apple", "banana", "orange", "mango", "grape"]
 
 # FIDS30 is a real-world fruit dataset with complex backgrounds and lighting.
-DATASET_URL = "https://www.vicos.si/Downloads/FIDS30"
+DATASET_URL = "https://data.vicos.si/datasets/FIDS30/FIDS30.zip"
 
 # Mapping from FIDS30 dataset folder names to our target classes
 FOLDER_MAP = {
     "apple": ["apples"],
     "banana": ["bananas"],
     "orange": ["oranges"],
-    "mango": ["mangoes"],
+    "pineapple": ["pineapples"],
     "grape": ["grapes"],
 }
 
