@@ -1,0 +1,33 @@
+# Byte-compiled / optimised
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Dataset (too large for Git)
+data/
+
+# Model checkpoints
+models/
+
+# Generated outputs
+outputs/
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+notebooks/.ipynb_checkpoints/
+
+# TensorFlow logs
+logs/
+
+AGENTS.md
